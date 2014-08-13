@@ -1,0 +1,15 @@
+<j:jelly xmlns:j="jelly:core"
+		 xmlns:f="/lib/form">
+	<f:entry title="Service Account E-Mail Address" field="serviceAccountEmailAddress">
+		<f:textbox/>
+	</f:entry>
+	<f:entry title="P12 Key" field="serviceAccountP12Key">
+		<f:textbox/>
+	</f:entry>
+	<f:entry title="APK Files (optional)" field="apkFiles">
+		<f:textbox/>
+	</f:entry>
+	<f:entry title="Track" field="track">
+		<f:select/>
+	</f:entry>
+</j:jelly>
