@@ -12,6 +12,8 @@
 	<artifactId>google-play-publisher</artifactId>
 	<version>0.0.0</version>
 	<packaging>hpi</packaging>
+	<name>Google play Publisher</name>
+	<description>Automatic upload apk files to Google Play Developer Console.</description>
 
 	<licenses>
 		<license>
@@ -34,5 +36,28 @@
 			<url>http://repo.jenkins-ci.org/public/</url>
 		</pluginRepository>
 	</pluginRepositories>
+
+	<dependencies>
+		<dependency>
+			<groupId>com.google.apis</groupId>
+			<artifactId>google-api-services-androidpublisher</artifactId>
+			<version>v2-rev2-1.19.0</version>
+		</dependency>
+		<dependency>
+			<groupId>com.google.oauth-client</groupId>
+			<artifactId>google-oauth-client-java6</artifactId>
+			<version>1.19.0</version>
+		</dependency>
+		<dependency>
+			<groupId>com.google.oauth-client</groupId>
+			<artifactId>google-oauth-client-jetty</artifactId>
+			<version>1.19.0</version>
+		</dependency>
+		<dependency>
+			<groupId>net.dongliu</groupId>
+			<artifactId>apk-parser</artifactId>
+			<version>1.4.3</version>
+		</dependency>
+	</dependencies>
 
 </project>
