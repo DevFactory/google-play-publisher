@@ -3,8 +3,8 @@
 	<f:entry title="Service Account E-Mail Address" field="serviceAccountEmailAddress">
 		<f:textbox/>
 	</f:entry>
-	<f:entry title="P12 Key" field="serviceAccountP12Key">
-		<f:textbox/>
+	<f:entry title="Service Account P12 Key" field="serviceAccountP12Key">
+	<f:textbox/>
 	</f:entry>
 	<f:entry title="APK Files (optional)" field="apkFiles">
 		<f:textbox/>
