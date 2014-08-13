@@ -7,9 +7,8 @@
 		<version>1.532.3</version>
 	</parent>
 
-	<groupId>de.hamm</groupId>
 	<artifactId>google-play-publisher</artifactId>
-	<version>0.0.0</version>
+	<version>0.1.0</version>
 	<packaging>hpi</packaging>
 	<name>Google play Publisher</name>
 	<description>Publish Android Apps on Google play.</description>
