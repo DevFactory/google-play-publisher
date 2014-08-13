@@ -5,7 +5,6 @@
 		<groupId>org.jenkins-ci.plugins</groupId>
 		<artifactId>plugin</artifactId>
 		<version>1.532.3</version>
-		<!-- which version of Jenkins is this plugin built against? Users must have at least this Jenkins version to use this plugin. -->
 	</parent>
 
 	<groupId>de.hamm</groupId>
@@ -13,7 +12,8 @@
 	<version>0.0.0</version>
 	<packaging>hpi</packaging>
 	<name>Google play Publisher</name>
-	<description>Automatic upload apk files to Google Play Developer Console.</description>
+	<description>Publish Android Apps on Google play.</description>
+	<url>http://wiki.jenkins-ci.org/display/JENKINS/google-play-publisher+plugin</url>
 
 	<licenses>
 		<license>
@@ -22,7 +22,20 @@
 		</license>
 	</licenses>
 
-	<!-- get every artifact through repo.jenkins-ci.org, which proxies all the artifacts that we need -->
+	<scm>
+		<connection>scm:git:ssh://github.com/davidhamm/google-play-publisher.git</connection>
+		<developerConnection>scm:git:ssh://github.com/davidhamm/google-play-publisher.git</developerConnection>
+		<url>https://github.com/davidhamm/google-play-publisher</url>
+	</scm>
+
+	<developers>
+		<developer>
+			<id>davidhamm</id>
+			<name>David Hamm</name>
+			<email>david.hamm.de@gmail.com</email>
+		</developer>
+	</developers>
+
 	<repositories>
 		<repository>
 			<id>repo.jenkins-ci.org</id>
