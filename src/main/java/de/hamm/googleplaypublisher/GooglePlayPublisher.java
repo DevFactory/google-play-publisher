@@ -1,7 +1,6 @@
 package de.hamm.googleplaypublisher;
 
 import hudson.Extension;
-import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
@@ -21,18 +20,16 @@ import java.io.PrintStream;
 
 public class GooglePlayPublisher extends Notifier {
 	private static final Log LOG = LogFactory.getLog(GooglePlayPublisher.class);
-	private static final String ALL_APK_FILES = "*/**.apk";
 	private final String emailAddress;
 	private final String p12File;
-	private final String apkFiles;
+	private final String apkFile;
 	private final String track;
 
 	@DataBoundConstructor
-	public GooglePlayPublisher(String emailAddress, String p12File, String apkFiles,
-							   String track) {
+	public GooglePlayPublisher(String emailAddress, String p12File, String apkFile, String track) {
 		this.emailAddress = emailAddress;
 		this.p12File = p12File;
-		this.apkFiles = apkFiles;
+		this.apkFile = apkFile;
 		this.track = track;
 	}
 
@@ -47,8 +44,8 @@ public class GooglePlayPublisher extends Notifier {
 	}
 
 	@SuppressWarnings("unused")
-	public String getApkFiles() {
-		return apkFiles;
+	public String getApkFile() {
+		return apkFile;
 	}
 
 	@SuppressWarnings("unused")
@@ -57,37 +54,24 @@ public class GooglePlayPublisher extends Notifier {
 	}
 
 	@Override
-	public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener) {
+	public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener)
+			throws IOException, InterruptedException {
 		PrintStream logger = listener.getLogger();
+		File workspace = new File(build.getWorkspace().toURI());
+		PublishHelper publishHelper = new PublishHelper.Builder(logger)
+				.setEmailAddress(emailAddress)
+				.setP12File(new File(p12File))
+				.setApkFile(new File(workspace, apkFile))
+				.setTrack(track)
+				.build();
 		try {
-			FilePath[] list = build.getWorkspace()
-					.list(apkFiles != null && !apkFiles.isEmpty() ? apkFiles : ALL_APK_FILES);
-			for (FilePath i : list) {
-				try {
-					new PublishHelper.Builder(logger)
-							.setEmailAddress(emailAddress)
-							.setP12File(new File(p12File))
-							.setApkFile(new File(i.toURI()))
-							.setTrack(track)
-							.build()
-							.publish();
-				} catch (IOException e) {
-					logger.println(String.format("Failed to convert FilePath '%s' to URI", i));
-					LOG.error(String.format("Failed to convert FilePath '%s' to URI", i), e);
-				} catch (InterruptedException e) {
-					logger.println(String.format("Failed to convert FilePath '%s' to URI", i));
-					LOG.error(String.format("Failed to convert FilePath '%s' to URI", i), e);
-				} catch (PublishHelper.PublishApkException e) {
-					logger.println(e.getMessage());
-					LOG.error(e.getMessage(), e);
-				}
-			}
-		} catch (IOException e) {
-			logger.println("Failed to retrieve the list of Apk Files");
-			LOG.error("Failed to retrieve the list of Apk Files", e);
-		} catch (InterruptedException e) {
-			logger.println("Failed to retrieve the list of Apk Files");
-			LOG.error("Failed to retrieve the list of Apk Files", e);
+			publishHelper.publish();
+		} catch (PublishHelper.ReadPackageNameException e) {
+			logger.println(e.getMessage());
+			LOG.error(e.getMessage(), e);
+		} catch (PublishHelper.PublishApkException e) {
+			logger.println(e.getMessage());
+			LOG.error(e.getMessage(), e);
 		}
 		return true;
 	}
