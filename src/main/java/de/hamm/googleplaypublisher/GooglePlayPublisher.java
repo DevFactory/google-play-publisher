@@ -11,6 +11,8 @@ import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Notifier;
 import hudson.tasks.Publisher;
 import hudson.util.ListBoxModel;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.File;
@@ -18,29 +20,30 @@ import java.io.IOException;
 import java.io.PrintStream;
 
 public class GooglePlayPublisher extends Notifier {
+	private static final Log LOG = LogFactory.getLog(GooglePlayPublisher.class);
 	private static final String ALL_APK_FILES = "*/**.apk";
-	private final String serviceAccountEmailAddress;
-	private final String serviceAccountP12Key;
+	private final String emailAddress;
+	private final String p12File;
 	private final String apkFiles;
 	private final String track;
 
 	@DataBoundConstructor
-	public GooglePlayPublisher(String serviceAccountEmailAddress, String serviceAccountP12Key, String apkFiles,
+	public GooglePlayPublisher(String emailAddress, String p12File, String apkFiles,
 							   String track) {
-		this.serviceAccountEmailAddress = serviceAccountEmailAddress;
-		this.serviceAccountP12Key = serviceAccountP12Key;
+		this.emailAddress = emailAddress;
+		this.p12File = p12File;
 		this.apkFiles = apkFiles;
 		this.track = track;
 	}
 
 	@SuppressWarnings("unused")
-	public String getServiceAccountEmailAddress() {
-		return serviceAccountEmailAddress;
+	public String getEmailAddress() {
+		return emailAddress;
 	}
 
 	@SuppressWarnings("unused")
-	public String getServiceAccountP12Key() {
-		return serviceAccountP12Key;
+	public String getP12File() {
+		return p12File;
 	}
 
 	@SuppressWarnings("unused")
@@ -61,16 +64,30 @@ public class GooglePlayPublisher extends Notifier {
 					.list(apkFiles != null && !apkFiles.isEmpty() ? apkFiles : ALL_APK_FILES);
 			for (FilePath i : list) {
 				try {
-					new ApkPublisher(logger, serviceAccountEmailAddress, new File(serviceAccountP12Key),
-							new File(i.toURI()), track).publish();
-				} catch (ApkPublisher.PublishApkException e) {
-					logger.println("Failed to publish '" + i + "'");
+					new PublishHelper.Builder(logger)
+							.setEmailAddress(emailAddress)
+							.setP12File(new File(p12File))
+							.setApkFile(new File(i.toURI()))
+							.setTrack(track)
+							.build()
+							.publish();
+				} catch (IOException e) {
+					logger.println(String.format("Failed to convert FilePath '%s' to URI", i));
+					LOG.error(String.format("Failed to convert FilePath '%s' to URI", i), e);
+				} catch (InterruptedException e) {
+					logger.println(String.format("Failed to convert FilePath '%s' to URI", i));
+					LOG.error(String.format("Failed to convert FilePath '%s' to URI", i), e);
+				} catch (PublishHelper.PublishApkException e) {
+					logger.println(e.getMessage());
+					LOG.error(e.getMessage(), e);
 				}
 			}
 		} catch (IOException e) {
 			logger.println("Failed to retrieve the list of Apk Files");
+			LOG.error("Failed to retrieve the list of Apk Files", e);
 		} catch (InterruptedException e) {
 			logger.println("Failed to retrieve the list of Apk Files");
+			LOG.error("Failed to retrieve the list of Apk Files", e);
 		}
 		return true;
 	}
@@ -89,9 +106,9 @@ public class GooglePlayPublisher extends Notifier {
 		@SuppressWarnings("unused")
 		public ListBoxModel doFillTrackItems() {
 			ListBoxModel model = new ListBoxModel();
-			model.add("Production", "production");
-			model.add("Beta", "beta");
-			model.add("Alpha", "alpha");
+			model.add("Production", PublishHelper.TRACK_PRODUCTION);
+			model.add("Beta", PublishHelper.TRACK_BETA);
+			model.add("Alpha", PublishHelper.TRACK_ALPHA);
 			return model;
 		}
 
