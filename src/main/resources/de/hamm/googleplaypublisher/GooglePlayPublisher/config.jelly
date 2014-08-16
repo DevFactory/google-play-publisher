@@ -9,8 +9,8 @@
 		</f:entry>
 	</f:section>
 	<f:section title="Upload Settings">
-		<f:entry title="APK Files (optional)" field="apkFiles">
-			<f:textbox/>
+		<f:entry title="APK File" field="apkFile">
+		<f:textbox/>
 		</f:entry>
 		<f:entry title="Track" field="track">
 			<f:select/>
