@@ -9,14 +9,21 @@ import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Notifier;
 import hudson.tasks.Publisher;
+import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.QueryParameter;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintStream;
+import java.io.*;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class GooglePlayPublisher extends Notifier {
 	private static final Log LOG = LogFactory.getLog(GooglePlayPublisher.class);
@@ -87,6 +94,58 @@ public class GooglePlayPublisher extends Notifier {
 
 	@Extension
 	public static final class DescriptorImpl extends BuildStepDescriptor<Publisher> {
+		private static final String EMAIL_PATTERN =
+				"^[_A-Za-z0-9-\\+]+(\\.[_A-Za-z0-9-]+)*@[A-Za-z0-9-]+(\\.[A-Za-z0-9]+)*(\\.[A-Za-z]{2,})$";
+
+		@SuppressWarnings("unused")
+		public FormValidation doCheckEmailAddress(@QueryParameter String value) {
+			Matcher matcher = Pattern.compile(EMAIL_PATTERN).matcher(value);
+			if (matcher.matches()) {
+				return FormValidation.ok();
+			}
+			return FormValidation.error("The provided E-Mail address is not valid!");
+		}
+
+		@SuppressWarnings("unused")
+		public FormValidation doCheckP12File(@QueryParameter String value) {
+			if (value == null || value.isEmpty()) {
+				return FormValidation.error("Please specify P12 File.");
+			}
+			FileInputStream stream;
+			try {
+				stream = new FileInputStream(new File(value));
+			} catch (FileNotFoundException e) {
+				return FormValidation.error("File not found!");
+			}
+			KeyStore keystore;
+			try {
+				keystore = KeyStore.getInstance("PKCS12");
+			} catch (KeyStoreException e) {
+				return FormValidation.error("No Keystore Provider found!");
+			}
+			try {
+				keystore.load(stream, "notasecret".toCharArray());
+			} catch (IOException e) {
+				return FormValidation.error("File is not a valid P12 File!");
+			} catch (NoSuchAlgorithmException e) {
+				return FormValidation.error("File is not a valid P12 File!");
+			} catch (CertificateException e) {
+				return FormValidation.error("File is not a valid P12 File!");
+			}
+			try {
+				stream.close();
+			} catch (IOException ignored) {
+			}
+			try {
+				keystore.getKey("privatekey", "notasecret".toCharArray());
+			} catch (KeyStoreException ignored) {
+			} catch (NoSuchAlgorithmException ignored) {
+			} catch (UnrecoverableKeyException e) {
+				return FormValidation.error("Key cannot be recovered!");
+			}
+			return FormValidation.ok();
+		}
+
 		@SuppressWarnings("unused")
 		public ListBoxModel doFillTrackItems() {
 			ListBoxModel model = new ListBoxModel();
