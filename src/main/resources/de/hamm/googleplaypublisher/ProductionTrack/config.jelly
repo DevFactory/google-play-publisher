@@ -1,0 +1,9 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core"
+		 xmlns:f="/lib/form">
+	<f:optionalBlock title="Staged Rollout" field="stagedRollout" checked="${track.stagedRollout != null}">
+		<f:entry title="Quota" field="quota">
+			<f:select default="${track.stagedRollout.quota}"/>
+		</f:entry>
+	</f:optionalBlock>
+</j:jelly>
