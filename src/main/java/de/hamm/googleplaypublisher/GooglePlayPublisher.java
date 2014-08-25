@@ -7,10 +7,10 @@ import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
-import hudson.tasks.Notifier;
 import hudson.tasks.Publisher;
+import hudson.tasks.Recorder;
 import hudson.util.FormValidation;
-import hudson.util.ListBoxModel;
+import jenkins.model.Jenkins;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -22,42 +22,36 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class GooglePlayPublisher extends Notifier {
+public class GooglePlayPublisher extends Recorder {
 	private static final Log LOG = LogFactory.getLog(GooglePlayPublisher.class);
 	private final String emailAddress;
 	private final String p12File;
 	private final String apkFile;
-	private final String track;
+	private final Track track;
+	private final List<ReleaseNotes> releaseNotes;
 
 	@DataBoundConstructor
-	public GooglePlayPublisher(String emailAddress, String p12File, String apkFile, String track) {
+	public GooglePlayPublisher(String emailAddress, String p12File, String apkFile, Track track,
+							   List<ReleaseNotes> releaseNotes) {
 		this.emailAddress = emailAddress;
 		this.p12File = p12File;
 		this.apkFile = apkFile;
 		this.track = track;
+		this.releaseNotes = releaseNotes;
 	}
 
-	@SuppressWarnings("unused")
-	public String getEmailAddress() {
-		return emailAddress;
-	}
-
-	@SuppressWarnings("unused")
-	public String getP12File() {
-		return p12File;
-	}
-
-	@SuppressWarnings("unused")
-	public String getApkFile() {
-		return apkFile;
-	}
-
-	@SuppressWarnings("unused")
-	public String getTrack() {
-		return track;
+	public static List<Track.DescriptorImpl> getTrackDescriptors() {
+		List<Track.DescriptorImpl> trackDescriptors = new ArrayList<Track.DescriptorImpl>();
+		Jenkins instance = Jenkins.getInstance();
+		trackDescriptors.add((Track.DescriptorImpl) instance.getDescriptorOrDie(ProductionTrack.class));
+		trackDescriptors.add((Track.DescriptorImpl) instance.getDescriptorOrDie(BetaTrack.class));
+		trackDescriptors.add((Track.DescriptorImpl) instance.getDescriptorOrDie(AlphaTrack.class));
+		return trackDescriptors;
 	}
 
 	@Override
@@ -70,6 +64,7 @@ public class GooglePlayPublisher extends Notifier {
 				.setP12File(new File(p12File))
 				.setApkFile(new File(workspace, apkFile))
 				.setTrack(track)
+				.setReleaseNotes(releaseNotes)
 				.build();
 		try {
 			publishHelper.publish();
@@ -88,8 +83,29 @@ public class GooglePlayPublisher extends Notifier {
 		return (DescriptorImpl) super.getDescriptor();
 	}
 
+	@Override
 	public BuildStepMonitor getRequiredMonitorService() {
 		return BuildStepMonitor.NONE;
+	}
+
+	public String getEmailAddress() {
+		return emailAddress;
+	}
+
+	public String getP12File() {
+		return p12File;
+	}
+
+	public String getApkFile() {
+		return apkFile;
+	}
+
+	public Track getTrack() {
+		return track;
+	}
+
+	public List<ReleaseNotes> getReleaseNotes() {
+		return releaseNotes;
 	}
 
 	@Extension
@@ -144,15 +160,6 @@ public class GooglePlayPublisher extends Notifier {
 				return FormValidation.error("Key cannot be recovered!");
 			}
 			return FormValidation.ok();
-		}
-
-		@SuppressWarnings("unused")
-		public ListBoxModel doFillTrackItems() {
-			ListBoxModel model = new ListBoxModel();
-			model.add("Production", PublishHelper.TRACK_PRODUCTION);
-			model.add("Beta", PublishHelper.TRACK_BETA);
-			model.add("Alpha", PublishHelper.TRACK_ALPHA);
-			return model;
 		}
 
 		public boolean isApplicable(Class<? extends AbstractProject> aClass) {

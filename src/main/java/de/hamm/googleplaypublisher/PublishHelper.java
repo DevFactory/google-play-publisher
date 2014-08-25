@@ -3,6 +3,7 @@ package de.hamm.googleplaypublisher;
 import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
+import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.client.http.FileContent;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.JsonFactory;
@@ -10,6 +11,7 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.androidpublisher.AndroidPublisher;
 import com.google.api.services.androidpublisher.AndroidPublisherScopes;
 import com.google.api.services.androidpublisher.model.Apk;
+import com.google.api.services.androidpublisher.model.ApkListing;
 import com.google.api.services.androidpublisher.model.AppEdit;
 import com.google.api.services.androidpublisher.model.Track;
 import net.dongliu.apk.parser.ApkParser;
@@ -25,10 +27,6 @@ import java.util.Collections;
 import java.util.List;
 
 public class PublishHelper {
-	public static final String TRACK_PRODUCTION = "production";
-	public static final String TRACK_BETA = "beta";
-	public static final String TRACK_ALPHA = "alpha";
-
 	private static final String MIME_TYPE_APK = "application/vnd.android.package-archive";
 	private static final String APPLICATION_NAME = "de.hamm.googleplaypublisher";
 	private final PrintStream logger;
@@ -37,7 +35,8 @@ public class PublishHelper {
 	private String emailAddress;
 	private File p12File;
 	private File apkFile;
-	private String track;
+	private de.hamm.googleplaypublisher.Track track;
+	private List<ReleaseNotes> releaseNotes;
 	private String packageName;
 	private AndroidPublisher.Edits edits;
 	private String appEditId;
@@ -66,8 +65,12 @@ public class PublishHelper {
 		this.packageName = null;
 	}
 
-	public void setTrack(String track) {
+	public void setTrack(de.hamm.googleplaypublisher.Track track) {
 		this.track = track;
+	}
+
+	private void setReleaseNotes(List<ReleaseNotes> releaseNotes) {
+		this.releaseNotes = releaseNotes;
 	}
 
 	private String getPackageName() throws ReadPackageNameException {
@@ -91,6 +94,7 @@ public class PublishHelper {
 		createAppEdit();
 		final Apk apk = uploadApk();
 		updateTracks(apk.getVersionCode());
+		publishAllReleaseNotes(apk.getVersionCode());
 		commitAppEdit();
 	}
 
@@ -137,28 +141,34 @@ public class PublishHelper {
 	}
 
 	private void updateTracks(Integer currentVersionCode) throws ReadPackageNameException, PublishApkException {
-		publishVersionInTrack(currentVersionCode);
+		publishVersion(currentVersionCode);
 		unpublishLowerVersionsInLowerTracks(currentVersionCode);
+		unpublishAllVersionsInLowerTracks();
 	}
 
-	private void unpublishLowerVersionsInLowerTracks(Integer currentVersionCode) {
-		if (track.equals(TRACK_PRODUCTION)) {
-			unpublishLowerVersionsInTrack(currentVersionCode, TRACK_BETA);
-		}
-		if (track.equals(TRACK_PRODUCTION) || track.equals(TRACK_BETA)) {
-			unpublishLowerVersionsInTrack(currentVersionCode, TRACK_ALPHA);
-		}
-	}
-
-	private void publishVersionInTrack(Integer currentVersionCode) throws ReadPackageNameException,
-			PublishApkException {
+	private void publishVersion(Integer currentVersionCode) throws ReadPackageNameException, PublishApkException {
 		try {
-			Track updatedTrack = edits.tracks().update(getPackageName(), appEditId, track,
-					new Track().setVersionCodes(Arrays.asList(currentVersionCode))).execute();
-			logger.println(String.format("Track %s has been updated.", updatedTrack.getTrack()));
+			Track updatedTrack = edits.tracks().update(getPackageName(), appEditId, track.getName(),
+					track.createApiTrack().setVersionCodes(Arrays.asList(currentVersionCode))).execute();
+			logger.println(String.format("Version codes %s have been published in Track '%s'",
+					Arrays.toString(updatedTrack.getVersionCodes().toArray()), updatedTrack.getTrack()));
 		} catch (IOException e) {
-			throw new PublishApkException(
-					String.format("Failed to execute update track request for track '%s'", track), e);
+			throw new PublishApkException(String.format("Failed to publish Version codes %s in Track '%s'",
+					Arrays.toString(Arrays.asList(currentVersionCode).toArray()), track.getName()), e);
+		}
+	}
+
+	private void unpublishLowerVersionsInLowerTracks(Integer currentVersionCode)
+			throws ReadPackageNameException, PublishApkException {
+		for (String i : track.getTracksWhereToUnpublishLowerVersions()) {
+			unpublishLowerVersionsInTrack(currentVersionCode, i);
+		}
+	}
+
+	private void unpublishAllVersionsInLowerTracks()
+			throws ReadPackageNameException, PublishApkException {
+		for (String i : track.getTracksWhereToUnpublishAllVersions()) {
+			unpublishAllVersionsInTrack(i);
 		}
 	}
 
@@ -169,14 +179,17 @@ public class PublishHelper {
 			List<Integer> versionCodes = trackToUpdate.getVersionCodes();
 			if (versionCodes != null) {
 				List<Integer> higherVersionCodes = getHigherVersionCodes(currentVersionCode, versionCodes);
+				List<Integer> lowerVersionCodes = getLowerVersionCodes(currentVersionCode, versionCodes);
 				if (!versionCodes.equals(higherVersionCodes)) {
 					try {
 						edits.tracks().update(getPackageName(), appEditId, trackName,
-								new Track().setVersionCodes(higherVersionCodes)).execute();
-						logger.println(String.format("Track %s has been updated.", trackName));
+								trackToUpdate.setVersionCodes(higherVersionCodes)).execute();
+						logger.println(String.format("Version codes %s have been unpublished from Track '%s'",
+								Arrays.toString(lowerVersionCodes.toArray()), trackName));
 					} catch (IOException e) {
 						throw new PublishApkException(
-								String.format("Failed to execute update request for Track %s", trackName), e);
+								String.format("Failed to unpublish Version codes %s in Track '%s'",
+										Arrays.toString(lowerVersionCodes.toArray()), track.getName()), e);
 					}
 				}
 			}
@@ -195,10 +208,64 @@ public class PublishHelper {
 		return higherVersionCodes;
 	}
 
+	private List<Integer> getLowerVersionCodes(Integer currentVersionCode, List<Integer> versionCodes) {
+		List<Integer> lowerVersionCodes = new ArrayList<Integer>();
+		for (Integer i : versionCodes) {
+			if (i <= currentVersionCode) {
+				lowerVersionCodes.add(i);
+			}
+		}
+		return lowerVersionCodes;
+	}
+
+	private void unpublishAllVersionsInTrack(String trackName) throws ReadPackageNameException, PublishApkException {
+		try {
+			Track trackToUpdate = edits.tracks().get(getPackageName(), appEditId, trackName).execute();
+			List<Integer> versionCodes = trackToUpdate.getVersionCodes();
+			if (versionCodes != null && !versionCodes.isEmpty()) {
+				trackToUpdate.setVersionCodes(null);
+				try {
+					edits.tracks().update(getPackageName(), appEditId, trackName, trackToUpdate).execute();
+					logger.println(String.format("Version codes %s have been unpublished from Track '%s'",
+							Arrays.toString(versionCodes.toArray()), trackName));
+				} catch (IOException e) {
+					throw new PublishApkException(String.format("Failed to unpublish Version codes %s in Track '%s'",
+							Arrays.toString(versionCodes.toArray()), track.getName()), e);
+				}
+			}
+		} catch (IOException e) {
+			// No published versions in track
+		}
+	}
+
+	private void publishAllReleaseNotes(Integer versionCode) throws PublishApkException {
+		for (ReleaseNotes i : releaseNotes) {
+			publishReleaseNotes(versionCode, i);
+		}
+	}
+
+	private void publishReleaseNotes(Integer versionCode, ReleaseNotes releaseNotes) throws PublishApkException {
+		try {
+			edits.apklistings().update(getPackageName(), appEditId, versionCode, releaseNotes.getLanguage(),
+					new ApkListing().setLanguage(releaseNotes.getLanguage())
+							.setRecentChanges(releaseNotes.getReleaseNotes())).execute();
+			logger.println(String.format("Release Notes in Language '%s' for Version code '%s' have been published",
+					releaseNotes.getLanguage(), versionCode));
+		} catch (IOException e) {
+			throw new PublishApkException(
+					String.format("Failed to publish Release Notes in Language '%s' for Version code '%s'",
+							releaseNotes.getLanguage(), versionCode), e);
+		}
+	}
+
 	private void commitAppEdit() throws ReadPackageNameException, PublishApkException {
 		try {
 			AppEdit appEdit = edits.commit(getPackageName(), appEditId).execute();
 			logger.println(String.format("App edit with id %s has been comitted", appEdit.getId()));
+		} catch (GoogleJsonResponseException e) {
+			throw new PublishApkException(
+					String.format("Failed to execute commit request. Google play Api Message: '%s'",
+							e.getDetails().getMessage()), e);
 		} catch (IOException e) {
 			throw new PublishApkException("Failed to execute commit request", e);
 		}
@@ -226,8 +293,13 @@ public class PublishHelper {
 			return this;
 		}
 
-		public Builder setTrack(String track) {
+		public Builder setTrack(de.hamm.googleplaypublisher.Track track) {
 			publishHelper.setTrack(track);
+			return this;
+		}
+
+		public Builder setReleaseNotes(List<ReleaseNotes> releaseNotes) {
+			publishHelper.setReleaseNotes(releaseNotes);
 			return this;
 		}
 

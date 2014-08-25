@@ -16,6 +16,7 @@
           </value>
         </option>
         <XML>
+          <option name="XML_ATTRIBUTE_WRAP" value="2" />
           <option name="XML_LEGACY_SETTINGS_IMPORTED" value="true" />
         </XML>
         <codeStyleSettings language="Groovy">
@@ -38,6 +39,21 @@
           <indentOptions>
             <option name="USE_TAB_CHARACTER" value="true" />
           </indentOptions>
+          <arrangement>
+            <rules>
+              <rule>
+                <match>
+                  <NAME>xmlns:.*</NAME>
+                </match>
+              </rule>
+              <rule>
+                <match>
+                  <XML_ATTRIBUTE />
+                </match>
+                <order>BY_NAME</order>
+              </rule>
+            </rules>
+          </arrangement>
         </codeStyleSettings>
       </value>
     </option>
