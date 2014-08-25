@@ -11,6 +11,7 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.androidpublisher.AndroidPublisher;
 import com.google.api.services.androidpublisher.AndroidPublisherScopes;
 import com.google.api.services.androidpublisher.model.Apk;
+import com.google.api.services.androidpublisher.model.ApkListing;
 import com.google.api.services.androidpublisher.model.AppEdit;
 import com.google.api.services.androidpublisher.model.Track;
 import net.dongliu.apk.parser.ApkParser;
@@ -35,6 +36,7 @@ public class PublishHelper {
 	private File p12File;
 	private File apkFile;
 	private de.hamm.googleplaypublisher.Track track;
+	private List<ReleaseNotes> releaseNotes;
 	private String packageName;
 	private AndroidPublisher.Edits edits;
 	private String appEditId;
@@ -67,6 +69,10 @@ public class PublishHelper {
 		this.track = track;
 	}
 
+	private void setReleaseNotes(List<ReleaseNotes> releaseNotes) {
+		this.releaseNotes = releaseNotes;
+	}
+
 	private String getPackageName() throws ReadPackageNameException {
 		if (packageName == null) {
 			try {
@@ -88,6 +94,7 @@ public class PublishHelper {
 		createAppEdit();
 		final Apk apk = uploadApk();
 		updateTracks(apk.getVersionCode());
+		publishAllReleaseNotes(apk.getVersionCode());
 		commitAppEdit();
 	}
 
@@ -231,6 +238,26 @@ public class PublishHelper {
 		}
 	}
 
+	private void publishAllReleaseNotes(Integer versionCode) throws PublishApkException {
+		for (ReleaseNotes i : releaseNotes) {
+			publishReleaseNotes(versionCode, i);
+		}
+	}
+
+	private void publishReleaseNotes(Integer versionCode, ReleaseNotes releaseNotes) throws PublishApkException {
+		try {
+			edits.apklistings().update(getPackageName(), appEditId, versionCode, releaseNotes.getLanguage(),
+					new ApkListing().setLanguage(releaseNotes.getLanguage())
+							.setRecentChanges(releaseNotes.getReleaseNotes())).execute();
+			logger.println(String.format("Release Notes in Language '%s' for Version code '%s' have been published",
+					releaseNotes.getLanguage(), versionCode));
+		} catch (IOException e) {
+			throw new PublishApkException(
+					String.format("Failed to publish Release Notes in Language '%s' for Version code '%s'",
+							releaseNotes.getLanguage(), versionCode), e);
+		}
+	}
+
 	private void commitAppEdit() throws ReadPackageNameException, PublishApkException {
 		try {
 			AppEdit appEdit = edits.commit(getPackageName(), appEditId).execute();
@@ -268,6 +295,11 @@ public class PublishHelper {
 
 		public Builder setTrack(de.hamm.googleplaypublisher.Track track) {
 			publishHelper.setTrack(track);
+			return this;
+		}
+
+		public Builder setReleaseNotes(List<ReleaseNotes> releaseNotes) {
+			publishHelper.setReleaseNotes(releaseNotes);
 			return this;
 		}
 

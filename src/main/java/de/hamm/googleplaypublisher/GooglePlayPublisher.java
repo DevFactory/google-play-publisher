@@ -33,13 +33,16 @@ public class GooglePlayPublisher extends Recorder {
 	private final String p12File;
 	private final String apkFile;
 	private final Track track;
+	private final List<ReleaseNotes> releaseNotes;
 
 	@DataBoundConstructor
-	public GooglePlayPublisher(String emailAddress, String p12File, String apkFile, Track track) {
+	public GooglePlayPublisher(String emailAddress, String p12File, String apkFile, Track track,
+							   List<ReleaseNotes> releaseNotes) {
 		this.emailAddress = emailAddress;
 		this.p12File = p12File;
 		this.apkFile = apkFile;
 		this.track = track;
+		this.releaseNotes = releaseNotes;
 	}
 
 	public static List<Track.DescriptorImpl> getTrackDescriptors() {
@@ -49,22 +52,6 @@ public class GooglePlayPublisher extends Recorder {
 		trackDescriptors.add((Track.DescriptorImpl) instance.getDescriptorOrDie(BetaTrack.class));
 		trackDescriptors.add((Track.DescriptorImpl) instance.getDescriptorOrDie(AlphaTrack.class));
 		return trackDescriptors;
-	}
-
-	public String getEmailAddress() {
-		return emailAddress;
-	}
-
-	public String getP12File() {
-		return p12File;
-	}
-
-	public String getApkFile() {
-		return apkFile;
-	}
-
-	public Track getTrack() {
-		return track;
 	}
 
 	@Override
@@ -77,6 +64,7 @@ public class GooglePlayPublisher extends Recorder {
 				.setP12File(new File(p12File))
 				.setApkFile(new File(workspace, apkFile))
 				.setTrack(track)
+				.setReleaseNotes(releaseNotes)
 				.build();
 		try {
 			publishHelper.publish();
@@ -95,8 +83,29 @@ public class GooglePlayPublisher extends Recorder {
 		return (DescriptorImpl) super.getDescriptor();
 	}
 
+	@Override
 	public BuildStepMonitor getRequiredMonitorService() {
 		return BuildStepMonitor.NONE;
+	}
+
+	public String getEmailAddress() {
+		return emailAddress;
+	}
+
+	public String getP12File() {
+		return p12File;
+	}
+
+	public String getApkFile() {
+		return apkFile;
+	}
+
+	public Track getTrack() {
+		return track;
+	}
+
+	public List<ReleaseNotes> getReleaseNotes() {
+		return releaseNotes;
 	}
 
 	@Extension

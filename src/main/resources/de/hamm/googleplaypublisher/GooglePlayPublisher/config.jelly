@@ -3,30 +3,47 @@
 		 xmlns:f="/lib/form">
 
 	<f:section title="Service Account">
-		<f:entry title="E-Mail Address" field="emailAddress">
-			<f:textbox/>
+		<f:entry field="emailAddress"
+				 title="E-Mail Address">
+		<f:textbox/>
 		</f:entry>
-		<f:entry title="P12 File" field="p12File">
-			<f:textbox/>
+		<f:entry field="p12File"
+				 title="P12 File">
+		<f:textbox/>
 		</f:entry>
 	</f:section>
-	<f:section title="Upload Settings">
-		<f:entry title="APK File" field="apkFile">
-			<f:textbox/>
+	<f:section title="Publish Settings">
+		<f:entry field="apkFile"
+				 title="APK File">
+		<f:textbox/>
 		</f:entry>
-		<j:set var="currentTrack" value="${instance.track}"/>
-		<j:invokeStatic var="trackDescriptors" method="getTrackDescriptors"
-						className="de.hamm.googleplaypublisher.GooglePlayPublisher"/>
-		<f:dropdownList name="track" title="Track"
-						help="/descriptor/de.hamm.googleplaypublisher.GooglePlayPublisher/help/track">
-			<j:forEach var="descriptor" items="${trackDescriptors}" varStatus="loop">
-				<j:set var="track" value="${descriptor == currentTrack.descriptor ? currentTrack : null}"/>
-				<f:dropdownListBlock title="${descriptor.displayName}" value="${loop.index}"
-									 selected="${track != null}"
-									 staplerClass="${descriptor.clazz.name}">
-					<st:include page="${descriptor.configPage}" from="${descriptor}"/>
+		<j:set value="${instance.track}"
+			   var="currentTrack"/>
+		<j:invokeStatic className="de.hamm.googleplaypublisher.GooglePlayPublisher"
+						method="getTrackDescriptors"
+						var="trackDescriptors"/>
+		<f:dropdownList help="/descriptor/de.hamm.googleplaypublisher.GooglePlayPublisher/help/track"
+						name="track"
+						title="Track">
+			<j:forEach items="${trackDescriptors}"
+					   var="descriptor"
+					   varStatus="loop">
+				<j:set value="${descriptor == currentTrack.descriptor ? currentTrack : null}"
+					   var="track"/>
+				<f:dropdownListBlock selected="${track != null}"
+									 staplerClass="${descriptor.clazz.name}"
+									 title="${descriptor.displayName}"
+									 value="${loop.index}">
+					<st:include from="${descriptor}"
+								page="${descriptor.configPage}"/>
 				</f:dropdownListBlock>
 			</j:forEach>
 		</f:dropdownList>
+		<f:entry field="releaseNotes"
+				 title="Release Notes">
+			<f:repeatableProperty add="Add Language"
+								  field="releaseNotes"
+								  minimum="0"/>
+		</f:entry>
 	</f:section>
 </j:jelly>
