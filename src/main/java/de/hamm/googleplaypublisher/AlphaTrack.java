@@ -34,7 +34,6 @@ public class AlphaTrack extends Track {
 		return Collections.emptyList();
 	}
 
-	@Override
 	public DescriptorImpl getDescriptor() {
 		return (DescriptorImpl) Jenkins.getInstance().getDescriptorOrDie(getClass());
 	}
