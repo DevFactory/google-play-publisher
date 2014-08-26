@@ -4,8 +4,8 @@ import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
-import com.google.api.client.http.FileContent;
 import com.google.api.client.http.HttpTransport;
+import com.google.api.client.http.InputStreamContent;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.androidpublisher.AndroidPublisher;
@@ -14,8 +14,8 @@ import com.google.api.services.androidpublisher.model.Apk;
 import com.google.api.services.androidpublisher.model.ApkListing;
 import com.google.api.services.androidpublisher.model.AppEdit;
 import com.google.api.services.androidpublisher.model.Track;
-import net.dongliu.apk.parser.ApkParser;
-import net.dongliu.apk.parser.exception.ParserException;
+import hudson.FilePath;
+import net.erdfelt.android.apk.AndroidApk;
 
 import java.io.File;
 import java.io.IOException;
@@ -34,7 +34,7 @@ public class PublishHelper {
 	private final HttpTransport httpTransport;
 	private String emailAddress;
 	private File p12File;
-	private File apkFile;
+	private FilePath apkFilePath;
 	private de.hamm.googleplaypublisher.Track track;
 	private List<ReleaseNotes> releaseNotes;
 	private String packageName;
@@ -60,8 +60,8 @@ public class PublishHelper {
 		this.p12File = p12File;
 	}
 
-	public void setApkFile(File apkFile) {
-		this.apkFile = apkFile;
+	public void setApkFilePath(FilePath apkFilePath) {
+		this.apkFilePath = apkFilePath;
 		this.packageName = null;
 	}
 
@@ -76,14 +76,11 @@ public class PublishHelper {
 	private String getPackageName() throws ReadPackageNameException {
 		if (packageName == null) {
 			try {
-				ApkParser apkParser = new ApkParser(apkFile);
-				packageName = apkParser.getApkMeta().getPackageName();
-				apkParser.close();
+				AndroidApk androidApk = new AndroidApk(apkFilePath.read());
+				packageName = androidApk.getPackageName();
 			} catch (IOException e) {
-				throw new ReadPackageNameException(String.format("Failed to read file '%s'", apkFile), e);
-			} catch (ParserException e) {
 				throw new ReadPackageNameException(
-						String.format("Failed to read AndroidManifest.xml from file '%s'", apkFile), e);
+						String.format("Failed to read package name from file '%s'", apkFilePath), e);
 			}
 		}
 		return packageName;
@@ -131,7 +128,8 @@ public class PublishHelper {
 
 	private Apk uploadApk() throws ReadPackageNameException, PublishApkException {
 		try {
-			Apk apk = edits.apks().upload(getPackageName(), appEditId, new FileContent(MIME_TYPE_APK, apkFile))
+			Apk apk = edits.apks()
+					.upload(getPackageName(), appEditId, new InputStreamContent(MIME_TYPE_APK, apkFilePath.read()))
 					.execute();
 			logger.println(String.format("Version code %d has been uploaded", apk.getVersionCode()));
 			return apk;
@@ -288,8 +286,8 @@ public class PublishHelper {
 			return this;
 		}
 
-		public Builder setApkFile(File apkFile) {
-			publishHelper.setApkFile(apkFile);
+		public Builder setApkFilePath(FilePath apkFilePath) {
+			publishHelper.setApkFilePath(apkFilePath);
 			return this;
 		}
 

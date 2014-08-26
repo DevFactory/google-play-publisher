@@ -20,7 +20,6 @@ public class ReleaseNotes implements Describable<ReleaseNotes>, Serializable {
 		this.releaseNotes = releaseNotes;
 	}
 
-	@Override
 	public DescriptorImpl getDescriptor() {
 		return (DescriptorImpl) Jenkins.getInstance().getDescriptorOrDie(ReleaseNotes.class);
 	}

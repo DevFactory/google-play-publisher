@@ -54,7 +54,6 @@ public class ProductionTrack extends Track {
 		return Collections.emptyList();
 	}
 
-	@Override
 	public DescriptorImpl getDescriptor() {
 		return (DescriptorImpl) Jenkins.getInstance().getDescriptorOrDie(getClass());
 	}

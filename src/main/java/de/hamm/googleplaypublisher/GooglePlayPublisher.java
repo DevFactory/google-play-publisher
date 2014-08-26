@@ -1,6 +1,7 @@
 package de.hamm.googleplaypublisher;
 
 import hudson.Extension;
+import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
@@ -59,11 +60,10 @@ public class GooglePlayPublisher extends Recorder {
 	public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener)
 			throws IOException, InterruptedException {
 		PrintStream logger = listener.getLogger();
-		File workspace = new File(build.getWorkspace().toURI());
 		PublishHelper publishHelper = new PublishHelper.Builder(logger)
 				.setEmailAddress(emailAddress)
 				.setP12File(new File(p12File))
-				.setApkFile(new File(workspace, apkFile))
+				.setApkFilePath(new FilePath(build.getModuleRoot(), apkFile))
 				.setTrack(track)
 				.setReleaseNotes(releaseNotes)
 				.build();
@@ -86,7 +86,6 @@ public class GooglePlayPublisher extends Recorder {
 		return (DescriptorImpl) super.getDescriptor();
 	}
 
-	@Override
 	public BuildStepMonitor getRequiredMonitorService() {
 		return BuildStepMonitor.NONE;
 	}

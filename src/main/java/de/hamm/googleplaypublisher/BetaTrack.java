@@ -36,7 +36,6 @@ public class BetaTrack extends Track {
 		return Collections.emptyList();
 	}
 
-	@Override
 	public Descriptor<Track> getDescriptor() {
 		return (DescriptorImpl) Jenkins.getInstance().getDescriptorOrDie(getClass());
 	}
