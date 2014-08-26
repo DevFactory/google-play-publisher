@@ -61,6 +61,7 @@ public class GooglePlayPublisher extends Recorder {
 	public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener)
 			throws IOException, InterruptedException {
 		PrintStream logger = listener.getLogger();
+		logger.println("[Google play Publisher] - Starting");
 		expandReleaseNotes(build.getEnvironment(listener));
 		PublishHelper publishHelper = new PublishHelper.Builder(logger)
 				.setEmailAddress(emailAddress)
@@ -72,14 +73,17 @@ public class GooglePlayPublisher extends Recorder {
 		try {
 			publishHelper.publish();
 		} catch (PublishHelper.ReadPackageNameException e) {
-			logger.println(e.getMessage());
+			logger.println("[Google play Publisher] - " + e.getMessage());
 			LOG.error(e.getMessage(), e);
 			build.setResult(Result.FAILURE);
+			return false;
 		} catch (PublishHelper.PublishApkException e) {
-			logger.println(e.getMessage());
+			logger.println("[Google play Publisher] - " + e.getMessage());
 			LOG.error(e.getMessage(), e);
 			build.setResult(Result.FAILURE);
+			return false;
 		}
+		logger.println("[Google play Publisher] - Finished");
 		return true;
 	}
 
