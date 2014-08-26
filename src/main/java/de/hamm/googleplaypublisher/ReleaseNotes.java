@@ -1,5 +1,6 @@
 package de.hamm.googleplaypublisher;
 
+import hudson.EnvVars;
 import hudson.Extension;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
@@ -12,7 +13,7 @@ import java.io.Serializable;
 public class ReleaseNotes implements Describable<ReleaseNotes>, Serializable {
 	private static final String DISLPLAY_NAME = "Release Notes";
 	private final String language;
-	private final String releaseNotes;
+	private String releaseNotes;
 
 	@DataBoundConstructor
 	public ReleaseNotes(String language, String releaseNotes) {
@@ -30,6 +31,10 @@ public class ReleaseNotes implements Describable<ReleaseNotes>, Serializable {
 
 	public String getReleaseNotes() {
 		return releaseNotes;
+	}
+
+	public void expand(EnvVars envVars) {
+		releaseNotes = envVars.expand(releaseNotes);
 	}
 
 	@Extension

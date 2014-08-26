@@ -1,5 +1,6 @@
 package de.hamm.googleplaypublisher;
 
+import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
@@ -60,6 +61,7 @@ public class GooglePlayPublisher extends Recorder {
 	public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener)
 			throws IOException, InterruptedException {
 		PrintStream logger = listener.getLogger();
+		expandReleaseNotes(build.getEnvironment(listener));
 		PublishHelper publishHelper = new PublishHelper.Builder(logger)
 				.setEmailAddress(emailAddress)
 				.setP12File(new File(p12File))
@@ -79,6 +81,14 @@ public class GooglePlayPublisher extends Recorder {
 			build.setResult(Result.FAILURE);
 		}
 		return true;
+	}
+
+	private void expandReleaseNotes(EnvVars envVars) {
+		if (releaseNotes != null) {
+			for (ReleaseNotes i : releaseNotes) {
+				i.expand(envVars);
+			}
+		}
 	}
 
 	@Override
