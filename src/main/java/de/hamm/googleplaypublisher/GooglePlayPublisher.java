@@ -5,6 +5,7 @@ import hudson.Launcher;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
+import hudson.model.Result;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Publisher;
@@ -71,9 +72,11 @@ public class GooglePlayPublisher extends Recorder {
 		} catch (PublishHelper.ReadPackageNameException e) {
 			logger.println(e.getMessage());
 			LOG.error(e.getMessage(), e);
+			build.setResult(Result.FAILURE);
 		} catch (PublishHelper.PublishApkException e) {
 			logger.println(e.getMessage());
 			LOG.error(e.getMessage(), e);
+			build.setResult(Result.FAILURE);
 		}
 		return true;
 	}
