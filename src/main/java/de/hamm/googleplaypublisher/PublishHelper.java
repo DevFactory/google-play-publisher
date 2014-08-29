@@ -237,8 +237,10 @@ public class PublishHelper {
 	}
 
 	private void publishAllReleaseNotes(Integer versionCode) throws PublishApkException {
-		for (ReleaseNotes i : releaseNotes) {
-			publishReleaseNotes(versionCode, i);
+		if (releaseNotes != null) {
+			for (ReleaseNotes i : releaseNotes) {
+				publishReleaseNotes(versionCode, i);
+			}
 		}
 	}
 
