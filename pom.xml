@@ -52,6 +52,11 @@
 
 	<dependencies>
 		<dependency>
+			<groupId>org.jenkins-ci.plugins</groupId>
+			<artifactId>google-oauth-plugin</artifactId>
+			<version>0.3-SNAPSHOT</version>
+		</dependency>
+		<dependency>
 			<groupId>com.google.apis</groupId>
 			<artifactId>google-api-services-androidpublisher</artifactId>
 			<version>v2-rev2-1.19.0</version>
