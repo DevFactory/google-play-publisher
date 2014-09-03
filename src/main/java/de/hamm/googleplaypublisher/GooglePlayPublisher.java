@@ -1,5 +1,7 @@
 package de.hamm.googleplaypublisher;
 
+import com.google.jenkins.plugins.credentials.domains.RequiresDomain;
+import com.google.jenkins.plugins.credentials.oauth.GoogleRobotCredentials;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
@@ -30,19 +32,17 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@RequiresDomain(value = AndroidPublisherScopeRequirement.class)
 public class GooglePlayPublisher extends Recorder {
 	private static final Log LOG = LogFactory.getLog(GooglePlayPublisher.class);
-	private final String emailAddress;
-	private final String p12File;
+	private final String credentialId;
 	private final String apkFile;
 	private final Track track;
 	private final List<ReleaseNotes> releaseNotes;
 
 	@DataBoundConstructor
-	public GooglePlayPublisher(String emailAddress, String p12File, String apkFile, Track track,
-							   List<ReleaseNotes> releaseNotes) {
-		this.emailAddress = emailAddress;
-		this.p12File = p12File;
+	public GooglePlayPublisher(String credentialId, String apkFile, Track track, List<ReleaseNotes> releaseNotes) {
+		this.credentialId = credentialId;
 		this.apkFile = apkFile;
 		this.track = track;
 		this.releaseNotes = releaseNotes;
@@ -64,8 +64,7 @@ public class GooglePlayPublisher extends Recorder {
 		logger.println("[Google play Publisher] - Starting");
 		expandReleaseNotes(build.getEnvironment(listener));
 		PublishHelper publishHelper = new PublishHelper.Builder(logger)
-				.setEmailAddress(emailAddress)
-				.setP12File(new File(p12File))
+				.setCredentials(GoogleRobotCredentials.getById(credentialId))
 				.setApkFilePath(new FilePath(build.getModuleRoot(), apkFile))
 				.setTrack(track)
 				.setReleaseNotes(releaseNotes)
@@ -87,14 +86,6 @@ public class GooglePlayPublisher extends Recorder {
 		return true;
 	}
 
-	private void expandReleaseNotes(EnvVars envVars) {
-		if (releaseNotes != null) {
-			for (ReleaseNotes i : releaseNotes) {
-				i.expand(envVars);
-			}
-		}
-	}
-
 	@Override
 	public DescriptorImpl getDescriptor() {
 		return (DescriptorImpl) super.getDescriptor();
@@ -104,12 +95,8 @@ public class GooglePlayPublisher extends Recorder {
 		return BuildStepMonitor.NONE;
 	}
 
-	public String getEmailAddress() {
-		return emailAddress;
-	}
-
-	public String getP12File() {
-		return p12File;
+	public String getCredentialId() {
+		return credentialId;
 	}
 
 	public String getApkFile() {
@@ -122,6 +109,14 @@ public class GooglePlayPublisher extends Recorder {
 
 	public List<ReleaseNotes> getReleaseNotes() {
 		return releaseNotes;
+	}
+
+	private void expandReleaseNotes(EnvVars envVars) {
+		if (releaseNotes != null) {
+			for (ReleaseNotes i : releaseNotes) {
+				i.expand(envVars);
+			}
+		}
 	}
 
 	@Extension

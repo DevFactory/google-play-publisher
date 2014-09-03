@@ -1,39 +1,36 @@
 package de.hamm.googleplaypublisher;
 
 import com.google.api.client.auth.oauth2.Credential;
-import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.InputStreamContent;
 import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.api.client.json.jackson.JacksonFactory;
 import com.google.api.services.androidpublisher.AndroidPublisher;
-import com.google.api.services.androidpublisher.AndroidPublisherScopes;
 import com.google.api.services.androidpublisher.model.Apk;
 import com.google.api.services.androidpublisher.model.ApkListing;
 import com.google.api.services.androidpublisher.model.AppEdit;
 import com.google.api.services.androidpublisher.model.Track;
+import com.google.jenkins.plugins.credentials.oauth.GoogleRobotCredentials;
 import hudson.FilePath;
 import net.erdfelt.android.apk.AndroidApk;
 
-import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 public class PublishHelper {
 	private static final String MIME_TYPE_APK = "application/vnd.android.package-archive";
 	private static final String APPLICATION_NAME = "de.hamm.googleplaypublisher";
 	private final PrintStream logger;
-	private final JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
+	private final JsonFactory jsonFactory = new JacksonFactory();
 	private final HttpTransport httpTransport;
-	private String emailAddress;
-	private File p12File;
+	private GoogleRobotCredentials credentials;
 	private FilePath apkFilePath;
 	private de.hamm.googleplaypublisher.Track track;
 	private List<ReleaseNotes> releaseNotes;
@@ -52,12 +49,8 @@ public class PublishHelper {
 		}
 	}
 
-	public void setEmailAddress(String emailAddress) {
-		this.emailAddress = emailAddress;
-	}
-
-	public void setP12File(File p12File) {
-		this.p12File = p12File;
+	private void setCredentials(GoogleRobotCredentials credentials) {
+		this.credentials = credentials;
 	}
 
 	public void setApkFilePath(FilePath apkFilePath) {
@@ -78,6 +71,9 @@ public class PublishHelper {
 			try {
 				AndroidApk androidApk = new AndroidApk(apkFilePath.read());
 				packageName = androidApk.getPackageName();
+			} catch (FileNotFoundException e) {
+				throw new ReadPackageNameException(
+						String.format("Could not find file '%s'", apkFilePath), e);
 			} catch (IOException e) {
 				throw new ReadPackageNameException(
 						String.format("Failed to read package name from file '%s'", apkFilePath), e);
@@ -97,21 +93,12 @@ public class PublishHelper {
 
 	private void createAndroidPublisherEdits() throws PublishApkException {
 		try {
-			final Credential credential = new GoogleCredential.Builder()
-					.setTransport(httpTransport)
-					.setJsonFactory(jsonFactory)
-					.setServiceAccountId(emailAddress)
-					.setServiceAccountScopes(Collections.singleton(AndroidPublisherScopes.ANDROIDPUBLISHER))
-					.setServiceAccountPrivateKeyFromP12File(p12File)
-					.build();
-
+			final Credential credential = credentials.getGoogleCredential(new AndroidPublisherScopeRequirement());
 			edits = new AndroidPublisher.Builder(httpTransport, jsonFactory, credential)
 					.setApplicationName(APPLICATION_NAME)
 					.build()
 					.edits();
 		} catch (GeneralSecurityException e) {
-			throw new PublishApkException("Failed to create Android Publisher Edits", e);
-		} catch (IOException e) {
 			throw new PublishApkException("Failed to create Android Publisher Edits", e);
 		}
 	}
@@ -278,13 +265,8 @@ public class PublishHelper {
 			publishHelper = new PublishHelper(logger);
 		}
 
-		public Builder setEmailAddress(String emailAddress) {
-			publishHelper.setEmailAddress(emailAddress);
-			return this;
-		}
-
-		public Builder setP12File(File p12File) {
-			publishHelper.setP12File(p12File);
+		public Builder setCredentials(GoogleRobotCredentials credentials) {
+			publishHelper.setCredentials(credentials);
 			return this;
 		}
 

@@ -1,21 +1,16 @@
 <j:jelly xmlns:j="jelly:core"
 		 xmlns:st="jelly:stapler"
-		 xmlns:f="/lib/form">
+		 xmlns:f="/lib/form"
+		 xmlns:c="/lib/auth">
 
 	<f:section title="Service Account">
-		<f:entry field="emailAddress"
-				 title="E-Mail Address">
-		<f:textbox/>
-		</f:entry>
-		<f:entry field="p12File"
-				 title="P12 File">
-		<f:textbox/>
-		</f:entry>
+		<c:credentials field="credentialId"
+					   title="Service Account"/>
 	</f:section>
 	<f:section title="Publish Settings">
 		<f:entry field="apkFile"
 				 title="APK File">
-		<f:textbox/>
+			<f:textbox/>
 		</f:entry>
 		<j:set value="${instance.track}"
 			   var="currentTrack"/>
