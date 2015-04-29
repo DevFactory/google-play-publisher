@@ -1,0 +1,17 @@
+<j:jelly xmlns:c="/lib/auth"
+		 xmlns:f="/lib/form"
+		 xmlns:j="jelly:core">
+
+	<c:credentials field="credentialId"
+				   title="Service Account"/>
+
+	<f:entry field="packageName"
+			 title="Package Name">
+		<f:textbox/>
+	</f:entry>
+
+	<f:entry field="environmentVariable"
+			 title="Environment Variable">
+		<f:textbox/>
+	</f:entry>
+</j:jelly>
