@@ -217,7 +217,7 @@ public class PublishHelper {
 		try {
 			edits.apklistings().update(packageName, appEditId, versionCode, releaseNotes.getLanguage(),
 					new ApkListing().setLanguage(releaseNotes.getLanguage())
-							.setRecentChanges(releaseNotes.getReleaseNotes())).execute();
+							.setRecentChanges(releaseNotes.getExpandedReleaseNotes())).execute();
 			logger.println(String.format("Release Notes in Language '%s' for Version code '%s' have been published",
 					releaseNotes.getLanguage(), versionCode));
 		} catch (IOException e) {

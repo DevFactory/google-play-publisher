@@ -13,7 +13,8 @@ import java.io.Serializable;
 public class ReleaseNotes implements Describable<ReleaseNotes>, Serializable {
 	private static final String DISLPLAY_NAME = "Release Notes";
 	private final String language;
-	private String releaseNotes;
+	private final String releaseNotes;
+	private String expandedReleaseNotes;
 
 	@DataBoundConstructor
 	public ReleaseNotes(String language, String releaseNotes) {
@@ -33,8 +34,12 @@ public class ReleaseNotes implements Describable<ReleaseNotes>, Serializable {
 		return releaseNotes;
 	}
 
+	public String getExpandedReleaseNotes() {
+		return expandedReleaseNotes;
+	}
+
 	public void expand(EnvVars envVars) {
-		releaseNotes = envVars.expand(releaseNotes);
+		expandedReleaseNotes = envVars.expand(releaseNotes);
 	}
 
 	@Extension
